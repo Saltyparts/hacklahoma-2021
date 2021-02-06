@@ -47,9 +47,9 @@ return {
                     graphics.setCanvas(state.gameView)
                     graphics.clear(0.3, 0.0, 0.3, 1.0, true, true)
                     graphics.setColor(1, 1, 1, 1)
-                    --print(state.move:normalize():angle_to(cpml.vec2.new(1, 0)) / math.pi * 8)
-                    print(cpml.vec2.new(-1, 0):angle_to(state.move:normalize()) / math.pi * 8)
-                    local sprite = 1 + math.floor(6 * cpml.vec2.new(1, 0):angle_to(state.move:normalize()) / math.pi * 8 + ((state.time * 6) % 4))
+                    local x = 1 + ((state.time * 6) % 4)
+                    local y = cpml.vec2.new(state.move.y, state.move.x):normalize():angle_to(cpml.vec2.new(0, 1)) / math.pi * 8 * -1
+                    local sprite = math.floor(x + y * 6)
                     graphics.draw(state.player.sprites.image, state.player.sprites.quads[sprite])
                     graphics.setCanvas()
                     graphics.draw(state.gameView, 0, 0, 0, state.scaleFactor, state.scaleFactor)
