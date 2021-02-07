@@ -59,10 +59,10 @@ function pushInputEvent(scancode, state)
     }
 
     if scancode == "escape" then event.button = "start"
-    elseif scancode == "left" then event.button = "left"
-    elseif scancode == "right" then event.button = "right"
-    elseif scancode == "down" then event.button = "down"
-    elseif scancode == "up" then event.button = "up"
+    elseif scancode == "a" then event.button = "left"
+    elseif scancode == "d" then event.button = "right"
+    elseif scancode == "s" then event.button = "down"
+    elseif scancode == "w" then event.button = "up"
     elseif scancode == "c" then event.button = "accept"
     elseif scancode == "x" then event.button = "cancel"
     end
