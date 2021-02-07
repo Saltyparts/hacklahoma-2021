@@ -8,10 +8,7 @@ function newPlayer()
         input = cpml.vec2.new(0, 0),
         inputDeadzone = 0.26,
         position = cpml.vec2.new(0, 0),
-        velocity = cpml.vec2.new(0, 0),
-        minimumVelocity = 1,
-        maxVelocity = 100,
-        friction = 1,
+        speed = 80,
         sprites = spritesheet.new("content/player.png", 32, 40),
         lastFacingDirection = 2,
         collider = { 
@@ -19,7 +16,7 @@ function newPlayer()
             x = 8, y = 32
         },
 
-        transform = function(player, event)
+        transform = function(player, event, map)
             if event.type == "input" then
                 if event.axis ~= nil then
                     if math.abs(event.value) <= player.inputDeadzone then event.value = 0 end
@@ -43,21 +40,18 @@ function newPlayer()
             elseif event.type == "update" then
                 local deltaTime = event.deltaTime
 
-                local accelerationDirection = player.input:trim(1.0)
-                local acceleration = accelerationDirection:scale(player.maxVelocity * 10 * deltaTime)
-                local appliedFriction = player.velocity:scale(12 * deltaTime)
-                local velocityLen = player.velocity:len()
-                if velocityLen <= player.maxVelocity then
-                    local dot = acceleration:dot(appliedFriction)
-                    if dot >= 0 then appliedFriction = appliedFriction:sub(acceleration * dot) end
-                end
-                player.velocity = player.velocity:add(acceleration):sub(appliedFriction):trim(math.max(velocityLen, player.maxVelocity))
+                player.position = player.position:add(player.input:scale(player.speed * deltaTime))
+                --player.position.x = math.max(-player.collider.x, player.position.x)
+                --player.position.y = math.max(-love.graphics.getHeight() / scaleFactor + player.collider.height + player.collider.y, player.position.y)
+                --player.position.x = math.min(love.graphics.getWidth() / scaleFactor - player.collider.width - player.collider.x, player.position.x)
+                --player.position.y = math.min(player.collider.y, player.position.y)
 
-                player.position = player.position:add(player.velocity * deltaTime)
-                player.position.x = math.max(-player.collider.x, player.position.x)
-                player.position.y = math.max(-love.graphics.getHeight() / scaleFactor + player.collider.height + player.collider.y, player.position.y)
-                player.position.x = math.min(love.graphics.getWidth() / scaleFactor - player.collider.width - player.collider.x, player.position.x)
-                player.position.y = math.min(player.collider.y, player.position.y)
+                local colliding = false
+                for x = math.floor(player.position.x) + player.collider.x, math.floor(player.position.x) + player.collider.x + player.collider.width, 16 do
+                    for y = math.floor(-player.position.y) + player.collider.y, math.floor(-player.position.y) + player.collider.y + player.collider.height, 16 do
+                        print(map[4][1 + math.floor(x / 16) + map.width * math.floor(y / 16)])
+                    end
+                end
             elseif event.type == "draw" then
                 local time = event.time
                 local graphics = love.graphics
@@ -195,7 +189,8 @@ return {
                 elseif event.type == "update" then
                     local deltaTime = event.deltaTime
                     state.time = state.time + event.deltaTime
-                    for i = 1, #state.players do state.players[i]:transform(event) end 
+                    state.players[1]:transform(event, state.map)
+                    --for i = 1, #state.players do state.players[i]:transform(event, state.map) end 
                 elseif event.type == "draw" then
                     event.time = state.time -- TODO: this is a workaround
                     local graphics = love.graphics
