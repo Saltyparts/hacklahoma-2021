@@ -25,6 +25,33 @@ local eventBuffer = {
     end,
 }
 
+function pushGamepadEvent(eventType, joystick, button, state)
+    local event = { type = "input" }
+
+    if eventType == "axis" then
+        local axis = button -- this is dumb, I'm aware
+        event.value = state
+
+        if axis == "leftx" then event.axis = "horizontal"
+        elseif axis == "lefty" then
+            event.axis = "vertical"
+            event.value = event.value * -1
+        end
+    elseif eventType == "button" then
+        event.state = state
+
+        if button == "dpleft" then event.button = "left"
+        elseif button == "dpright" then event.button = "right"
+        elseif button == "dpdown" then event.button = "down"
+        elseif button == "dpup" then event.button = "up"
+        elseif button == "a" then event.button = "accept"
+        elseif button == "x" then event.button = "cancel"
+        end
+    end
+
+    eventBuffer:push(event)
+end
+
 function pushInputEvent(scancode, state)
     local event = {
         type = "input",
@@ -43,6 +70,9 @@ function pushInputEvent(scancode, state)
     eventBuffer:push(event)
 end
 
+function love.gamepadaxis(joystick, axis, value) pushGamepadEvent("axis", joystick, axis, value) end
+function love.gamepadpressed(joystick, button) pushGamepadEvent("button", joystick, button, "pressed") end
+function love.gamepadreleased(joystick, button) pushGamepadEvent("button", joystick, button, "released") end
 function love.keypressed(scancode) pushInputEvent(scancode, "pressed") end
 function love.keyreleased(scancode) pushInputEvent(scancode, "released") end
 
@@ -52,8 +82,10 @@ function love.run()
     local handlers = love.handlers
     local state = mainMenuState.new()
     local timer = love.timer
+    local window = love.window
 
     graphics.setDefaultFilter("nearest", "nearest")
+    window.setMode(1440, 864)
 
     -- Required for the first calculation of deltaTime
     timer.step()

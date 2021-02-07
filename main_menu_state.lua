@@ -21,7 +21,7 @@ return {
                     end
                 elseif event.type == "draw" then
                     local graphics = love.graphics
-                    for i=1, #state.buttons do
+                    for i = 1, #state.buttons do
                         if i == state.cursor then graphics.setColor(0.95, 0.95, 0.95, 1)
                         else graphics.setColor(0.5, 0.5, 0.5, 1)
                         end
