@@ -9,13 +9,13 @@ return {
             },
             cursor = 1,
             transform = function(state, event)
-                if event.type == "input" then
-                    local button = event.button
-                    local buttonState = event.state
-                    if button == "down" and buttonState == "pressed" then state.cursor = (state.cursor % #state.buttons) + 1
-                    elseif button == "up" and buttonState == "pressed" then state.cursor = ((state.cursor - 2) % #state.buttons) + 1
-                    elseif button == "accept" and buttonState == "pressed" then
-                        if state.buttons[state.cursor] == "play" then return lobbyState.new() end
+                if event.type == "input" and event.kind == "button" then
+                    if event.specifier == "down" and event.value == "pressed" then state.cursor = (state.cursor % #state.buttons) + 1
+                    elseif event.specifier == "up" and event.value == "pressed" then state.cursor = ((state.cursor - 2) % #state.buttons) + 1
+                    elseif event.specifier == "accept" and event.value == "pressed" then
+                        if state.buttons[state.cursor] == "play" then return lobbyState.new()
+                        elseif state.buttons[state.cursor] == "quit" then love.event.quit(0)
+                        end
                     end
                 elseif event.type == "draw" then
                     local graphics = love.graphics

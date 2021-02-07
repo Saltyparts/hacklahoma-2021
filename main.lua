@@ -25,56 +25,49 @@ local eventBuffer = {
     end,
 }
 
-function pushGamepadEvent(eventType, joystick, button, state)
-    local event = { type = "input" }
+function pushInputEvent(device, kind, specifier, value)
+    if device ~= "keyboard" then device = device:getGUID() end
 
-    if eventType == "axis" then
-        local axis = button -- this is dumb, I'm aware
-        event.value = state
-
-        if axis == "leftx" then event.axis = "horizontal"
-        elseif axis == "lefty" then
-            event.axis = "vertical"
-            event.value = event.value * -1
-        end
-    elseif eventType == "button" then
-        event.state = state
-
-        if button == "dpleft" then event.button = "left"
-        elseif button == "dpright" then event.button = "right"
-        elseif button == "dpdown" then event.button = "down"
-        elseif button == "dpup" then event.button = "up"
-        elseif button == "a" then event.button = "accept"
-        elseif button == "x" then event.button = "cancel"
-        end
-    end
-
-    eventBuffer:push(event)
-end
-
-function pushInputEvent(scancode, state)
     local event = {
         type = "input",
-        state = state,
+        device = device,
+        kind = kind,
+        value = value,
     }
 
-    if scancode == "escape" then event.button = "start"
-    elseif scancode == "a" then event.button = "left"
-    elseif scancode == "d" then event.button = "right"
-    elseif scancode == "s" then event.button = "down"
-    elseif scancode == "w" then event.button = "up"
-    elseif scancode == "c" then event.button = "accept"
-    elseif scancode == "x" then event.button = "cancel"
+    if device == "keyboard" then
+        if specifier == "escape" then event.specifier = "start"
+        elseif specifier == "a" then event.specifier = "left"
+        elseif specifier == "d" then event.specifier = "right"
+        elseif specifier == "s" then event.specifier = "down"
+        elseif specifier == "w" then event.specifier = "up"
+        elseif specifier == "c" then event.specifier = "accept"
+        elseif specifier == "x" then event.specifier = "cancel"
+        end
+    else
+        if kind == "axis" then
+            if specifier == "leftx" then event.specifier = "horizontal"
+            elseif specifier == "lefty" then event.specifier = "vertical"
+            end
+        elseif kind == "button" then
+            if specifier == "dpleft" then event.specifier = "left"
+            elseif specifier == "dpright" then event.specifier = "right"
+            elseif specifier == "dpdown" then event.specifier = "down"
+            elseif specifier == "dpup" then event.specifier = "up"
+            elseif specifier == "a" then event.specifier = "accept"
+            elseif specifier == "x" then event.specifier = "cancel"
+            end
+        end
     end
 
     eventBuffer:push(event)
 end
 
-function love.gamepadaxis(joystick, axis, value) pushGamepadEvent("axis", joystick, axis, value) end
-function love.gamepadpressed(joystick, button) pushGamepadEvent("button", joystick, button, "pressed") end
-function love.gamepadreleased(joystick, button) pushGamepadEvent("button", joystick, button, "released") end
-function love.keypressed(scancode) pushInputEvent(scancode, "pressed") end
-function love.keyreleased(scancode) pushInputEvent(scancode, "released") end
+function love.gamepadaxis(joystick, axis, value) pushInputEvent(joystick, "axis", axis, value) end
+function love.gamepadpressed(joystick, button) pushInputEvent(joystick, "button", button, "pressed") end
+function love.gamepadreleased(joystick, button) pushInputEvent(joystick, "button", button, "released") end
+function love.keypressed(scancode) pushInputEvent("keyboard", "button", scancode, "pressed") end
+function love.keyreleased(scancode) pushInputEvent("keyboard", "button", scancode, "released") end
 
 function love.run()
     local event = love.event
@@ -106,7 +99,7 @@ function love.run()
         end
 
         -- Apply deltaTime to state
-        state:transform({
+        state = state:transform({
             type = "update",
             deltaTime = timer.step(),
         })
@@ -115,7 +108,7 @@ function love.run()
         if graphics.isActive() then
             graphics.setColor(1, 0, 1, 1)
             graphics.push()
-            state:transform({ type = "draw" })
+            state = state:transform({ type = "draw" })
             graphics.pop()
             graphics.present()
         end

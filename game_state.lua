@@ -3,75 +3,129 @@ local spritesheet = require 'spritesheet'
 
 local scaleFactor = 3
 
+function sign(number)
+    return number > 0 and 1 or (number == 0 and 0 or -1)
+end
+
+function round(num)
+    local mult = 10 ^ 0
+    return math.floor(num * mult + 0.5) / mult
+end
+
+function colliding(map, x, y, width, height)
+    local colliding = 0
+    for x = x, x + width, 16 do
+        for y = y, y + height, 16 do
+            if map[4][1 + math.floor(x / 16) + map.width * math.floor(y / 16)] == 1 then return true end
+        end
+    end
+    return false
+end
+
 function newPlayer()
     return {
         input = cpml.vec2.new(0, 0),
         inputDeadzone = 0.26,
         position = cpml.vec2.new(0, 0),
-        speed = 80,
+        velocity = cpml.vec2.new(0, 0),
+        speed = 100,
         sprites = spritesheet.new("content/player.png", 32, 40),
         lastFacingDirection = 2,
         collider = { 
             width = 16, height = 8,
-            x = 8, y = 32
+            x = 8, y = 34
         },
 
         transform = function(player, event, map)
             if event.type == "input" then
-                if event.axis ~= nil then
+                if event.kind == "axis" then
                     if math.abs(event.value) <= player.inputDeadzone then event.value = 0 end
-                    if event.axis == "horizontal" then player.input.x = event.value
-                    elseif event.axis == "vertical" then player.input.y = event.value
+                    if event.specifier == "horizontal" then player.input.x = event.value
+                    elseif event.specifier == "vertical" then player.input.y = event.value
                     end
-                elseif event.button ~= nil then
-                    local button = event.button
-                    local buttonState = event.state
-
-                    if button == "left" and buttonState == "pressed" then player.input.x = player.input.x - 1
-                    elseif button == "left" and buttonState == "released" then player.input.x = player.input.x + 1
-                    elseif button == "right" and buttonState == "pressed" then player.input.x = player.input.x + 1
-                    elseif button == "right" and buttonState == "released" then player.input.x = player.input.x - 1
-                    elseif button == "down" and buttonState == "pressed" then player.input.y = player.input.y - 1
-                    elseif button == "down" and buttonState == "released" then player.input.y = player.input.y + 1
-                    elseif button == "up" and buttonState == "pressed" then player.input.y = player.input.y + 1
-                    elseif button == "up" and buttonState == "released" then player.input.y = player.input.y - 1
+                elseif event.kind == "button" then
+                    if event.specifier == "left" and event.value == "pressed" then player.input.x = player.input.x - 1
+                    elseif event.specifier == "left" and event.value == "released" then player.input.x = player.input.x + 1
+                    elseif event.specifier == "right" and event.value == "pressed" then player.input.x = player.input.x + 1
+                    elseif event.specifier == "right" and event.value == "released" then player.input.x = player.input.x - 1
+                    elseif event.specifier == "down" and event.value == "pressed" then player.input.y = player.input.y + 1
+                    elseif event.specifier == "down" and event.value == "released" then player.input.y = player.input.y - 1
+                    elseif event.specifier == "up" and event.value == "pressed" then player.input.y = player.input.y - 1
+                    elseif event.specifier == "up" and event.value == "released" then player.input.y = player.input.y + 1
                     end
                 end
             elseif event.type == "update" then
                 local deltaTime = event.deltaTime
 
-                player.position = player.position:add(player.input:scale(player.speed * deltaTime))
-                player.position.x = math.max(-player.collider.x, player.position.x)
-                player.position.y = math.max(-love.graphics.getHeight() / scaleFactor + player.collider.height + player.collider.y, player.position.y)
-                player.position.x = math.min(love.graphics.getWidth() / scaleFactor - player.collider.width - player.collider.x, player.position.x)
-                player.position.y = math.min(player.collider.y, player.position.y)
+                player.velocity = player.input:trim(1):scale(player.speed * deltaTime)
 
-                local colliding = false
-                for x = math.floor(player.position.x) + player.collider.x, math.floor(player.position.x) + player.collider.x + player.collider.width, 16 do
-                    for y = math.floor(-player.position.y) + player.collider.y, math.floor(-player.position.y) + player.collider.y + player.collider.height, 16 do
-                        print(map[4][1 + math.floor(x / 16) + map.width * math.floor(y / 16)])
-                    end
-                end
+                if colliding(
+                    map,
+                    math.floor(player.position.x) + player.collider.x,
+                    math.floor(player.position.y + player.velocity.y) + player.collider.y,
+                    player.collider.width,
+                    player.collider.height
+                ) == true then
+                    while colliding(
+                        map,
+                        math.floor(player.position.x) + player.collider.x,
+                        math.floor(player.position.y + sign(player.velocity.y)) + player.collider.y,
+                        player.collider.width,
+                        player.collider.height
+                    ) == false do player.position.y = player.position.y + sign(player.velocity.y) end
+                else player.position.y = player.position.y + player.velocity.y end
+
+                if colliding(
+                    map,
+                    math.floor(player.position.x + player.velocity.x) + player.collider.x,
+                    math.floor(player.position.y) + player.collider.y,
+                    player.collider.width,
+                    player.collider.height
+                ) == true then
+                    while colliding(
+                        map,
+                        math.floor(player.position.x + sign(player.velocity.x)) + player.collider.x,
+                        math.floor(player.position.y) + player.collider.y,
+                        player.collider.width,
+                        player.collider.height
+                    ) == false do player.position.x = player.position.x + sign(player.velocity.x) end
+                else player.position.x = player.position.x + player.velocity.x end
             elseif event.type == "draw" then
                 local time = event.time
                 local graphics = love.graphics
 
                 graphics.setColor(1, 1, 1, 1)
                 local sprite = nil
-                local x = math.floor(1 + ((time * 8) % 4))
-                local y = math.floor(cpml.vec2.new(player.input.y, player.input.x):normalize():angle_to(cpml.vec2.new(0, 1)) / math.pi * -8)
-                y = math.max(y, 0)
-                if player.input:len() > player.inputDeadzone then
+                local x = 0
+                local y = 0
+                local angle = round(math.atan2(player.input.y, player.input.x) / math.pi * 4)
+                if angle == 0 then y = 0
+                elseif angle == -1 then y = 1
+                elseif angle == -2 then y = 2
+                elseif angle == -3 then y = 3
+                elseif angle == 4 then y = 4
+                elseif angle == 3 then y = 5
+                elseif angle == 2 then y = 6
+                elseif angle == 1 then y = 7
+                end
+
+                if player.input:len() > 0.85 then
+                    x = math.floor(1 + ((time * 8) % 6))
+                    player.lastFacingDirection = 2 + y * 6
+                    y = y + 8
+                    sprite = x + y * 6
+                elseif player.input:len() > player.inputDeadzone then 
+                    x = math.floor(1 + ((time * 8) % 4))
                     player.lastFacingDirection = 2 + y * 6
                     sprite = x + y * 6
-                else sprite = player.lastFacingDirection
+                else sprite =  player.lastFacingDirection
                 end
 
                 graphics.draw(
                     player.sprites.image,
                     player.sprites.quads[sprite],
                     math.floor(player.position.x),
-                    math.floor(-player.position.y)
+                    math.floor(player.position.y)
                 )
             end
         end,
@@ -79,7 +133,7 @@ function newPlayer()
 end
 
 return {
-    new = function()
+    new = function(players)
         local state = {
             scaleFactor = 3,
             map = {
@@ -164,33 +218,27 @@ return {
                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                 },
                 spawnpoints = {
-                    { 80, -160 },
-                    { 80, -170 },
-                    { 160, -160 },
-                    { 160, -80 },
+                    { 120, 200 },
+                    { 80, 170 },
+                    { 160, 160 },
+                    { 160, 80 },
                 },
                 spritesheet = spritesheet.new("content/tileset.png", 16, 16),
                 width = 30,
             },
+            players = {},
             time = 0,
             gameView = love.graphics.newCanvas(),
-            players = {
-                newPlayer(),
-                newPlayer(),
-                newPlayer(),
-                newPlayer(),
-            },
             camera = {
                 position = cpml.vec2.new(),
             },
             transform = function(state, event)
                 if event.type == "input" then
-                    state.players[1]:transform(event)
+                    if state.players[event.device] then state.players[event.device]:transform(event) end
                 elseif event.type == "update" then
                     local deltaTime = event.deltaTime
                     state.time = state.time + event.deltaTime
-                    state.players[1]:transform(event, state.map)
-                    --for i = 1, #state.players do state.players[i]:transform(event, state.map) end 
+                    for i, player in pairs(state.players) do player:transform(event, state.map) end
                 elseif event.type == "draw" then
                     event.time = state.time -- TODO: this is a workaround
                     local graphics = love.graphics
@@ -210,7 +258,18 @@ return {
                         end
                     end
 
-                    for i = 1, #state.players do state.players[i]:transform(event) end 
+                    local drawOrder = {}
+                    for i, player in pairs(state.players) do
+                        table.insert(drawOrder, player)
+                    end
+                    table.sort(drawOrder, function(left, right)
+                            return left.position.y < right.position.y
+                        end
+                    )
+
+                    for i = 1, #drawOrder do
+                        drawOrder[i]:transform(event, state.map)
+                    end
 
                     for i = 1, #state.map[3] do
                         local map = state.map
@@ -226,8 +285,11 @@ return {
             end,
         }
 
-        for i = 1, #state.players do
-            state.players[i].position = cpml.vec2.new(state.map.spawnpoints[i][1], state.map.spawnpoints[i][2])
+        for i = 1, #players do
+            if players[i] ~= "not connected" then
+                state.players[players[i]] = newPlayer()
+                state.players[players[i]].position = cpml.vec2.new(state.map.spawnpoints[i][1], state.map.spawnpoints[i][2])
+            end
         end
 
         local delay = 2
@@ -236,11 +298,8 @@ return {
             if timeElapsed > lastOcc then
             for i = 1, 4 do
                 local map = state.map
-                local footstepsPath = love.audio.newSource("gravel_footsteps.wav", "static")
-                local footstepsGrass = love.audio.newSource("Footstep.wav", "static")
-                local xcord = state.players[i].position.x % 16
-                local ycord = state.players[i].position.y % 16
-                local tile = xcord + ( 32 * (ycord % 16))
+                local footstepsPath = love.audio.newSource("content/gravel_footsteps.wav", "static")
+                local footstepsGrass = love.audio.newSource("content/footstep.wav", "static")
                 if map[1][tile] == 33 then love.audio.play(footstepsPath)
                 elseif map[1][tile] == 42 then love.audio.play(footstepsPath)
                 else love.audio.play(footstepsGrass)
@@ -249,7 +308,8 @@ return {
         end
 
 
-        local backgroundMusic = love.audio.newSource("Music.wav", "static")
+        local backgroundMusic = love.audio.newSource("content/music.wav", "stream")
+        backgroundMusic:setVolume(0.5)
         love.audio.play(backgroundMusic)
         
         return state
