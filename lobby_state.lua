@@ -38,7 +38,14 @@ return {
                             end
                         end
                     end
-
+                elseif event.type == "draw" then
+                    local graphics = love.graphics
+                    graphics.setColor(0.95, 0.95, 0.95, 1)
+                    for i = 1, 4 do
+                        if state.inputDevices[i] == nil then graphics.print("Not connected", 100)
+                        else graphics.print(state.inputDevices[i], 100, (i - 1) * 30 + 20)
+                        end
+                    end
                 end
 
                 return state
