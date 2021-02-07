@@ -3,7 +3,7 @@ local gameState = require 'game_state'
 return {
     new = function()
         return {
-            inputDevices = { nil, nil, nil, nil },
+            inputDevices = { "not connected", "not connected", "not connected", "not connected" },
 
             transform = function(state, event)
                 if event.type == "input" then
@@ -12,7 +12,7 @@ return {
                     if button == "accept" and buttonState == "pressed" then
                         for i = 1, 4 do
                             if state.inputDevices[i] == "keyboard" then return gameState.new()
-                            elseif state.inputDevices[i] == nil then state.inputDevices[i] = "keyboard"
+                            elseif state.inputDevices[i] == "not connected" then state.inputDevices[i] = "keyboard"
                                 print("Player is connected")
                                 break
                             else 
@@ -23,7 +23,7 @@ return {
 
                     if button == "cancelled" and buttonState == "pressed" then
                         for i = 1, 4 do
-                            if state.inputDevices[i] == "keyboard" then state.inputDevices[i] = nil
+                            if state.inputDevices[i] == "keyboard" then state.inputDevices[i] = "not connected"
                             end
                         end
                     end
@@ -31,7 +31,7 @@ return {
                     if button == "accept" and buttonState == "pressed" then
                         for i = 1, 4 do
                             if state.inputDevices[i] == eventType.joystick:getGUID() then return gameState.new()
-                            elseif state.inputDevices[i] == nil then state.inputDevices[i] = eventType.joystick:getGUID()
+                            elseif state.inputDevices[i] == "not connected" then state.inputDevices[i] = eventType.joystick:getGUID()
                                 break
                             else
                                 print("Lobby is full")
@@ -40,11 +40,10 @@ return {
                     end
                 elseif event.type == "draw" then
                     local graphics = love.graphics
+                    graphics.clear(0, 0, 0, 1)
                     graphics.setColor(0.95, 0.95, 0.95, 1)
-                    for i = 1, 4 do
-                        if state.inputDevices[i] == nil then graphics.print("Not connected", 100)
-                        else graphics.print(state.inputDevices[i], 100, (i - 1) * 30 + 20)
-                        end
+                    for i = 1, #state.inputDevices do
+                        graphics.print(state.inputDevices[i], 20, (i - 1) * 30 + 20)
                     end
                 end
 
